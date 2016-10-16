@@ -1,0 +1,2 @@
+Author: Albert Farrakhov
+You need to solve a game of Hashiwokakero, building bridges between cells of a grid, forming a graph. In order to solve this problem, you will need an efficient way to store possible solutions for each step, and backtrack through this possibilities in order to find the optimal one.
