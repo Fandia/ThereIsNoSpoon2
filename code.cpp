@@ -20,18 +20,18 @@ class ISLAND{
 				neighborsPtrs.push_back( &(islandsMatr[i][jIndx]) ); break;
 			}
 		}
-		for(int i = iIndx - 1 ; i > 0 ; --i){
+		for(int i = iIndx - 1 ; i >= 0 ; --i){
 			if(islandsMatr[i][jIndx].isIsland){
 				neighborsPtrs.push_back( &(islandsMatr[i][jIndx]) ); break;
 			}
 		}
 		for(int i = jIndx + 1 ; i < height ; ++i){
-			if(islandsMatr[i][jIndx].isIsland){
+			if(islandsMatr[iIndx][i].isIsland){
 				neighborsPtrs.push_back( &(islandsMatr[iIndx][i]) ); break;
 			}
 		}
-		for(int i = jIndx - 1 ; i > 0 ; --i){
-			if(islandsMatr[i][jIndx].isIsland){
+		for(int i = jIndx - 1 ; i >= 0 ; --i){
+			if(islandsMatr[iIndx][i].isIsland){
 				neighborsPtrs.push_back( &(islandsMatr[iIndx][i]) ); break;
 			}
 		}
@@ -55,6 +55,14 @@ int main()
 			if(line[j] != '.'){
 				islandsMatr[i][j].isIsland = true;
 				islandsMatr[i][j].freeBridges = (int)(line[j]) - 48;
+			}
+		}
+    }
+	
+	for (int i = 0; i < height; i++) {
+		for(int j = 0 ; j < width ; ++j){
+			if(islandsMatr[i][j].isIsland){
+				islandsMatr[i][j].addNeighbors(i , j , width , height , islandsMatr);
 			}
 		}
     }
