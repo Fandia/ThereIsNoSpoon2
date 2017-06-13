@@ -1,70 +1,185 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <list>
+#include <deque>
 #include <algorithm>
 
 using namespace std;
 
 class ISLAND{
-	public:
-	bool isIsland = false;
-	unsigned int freeBridges;
-	//unsigned int maxBridges;
-	pair<unsigned int , unsigned int> indxs;
-	list<ISLAND* > neighborsPtrs;
-	
-	void addNeighbors(int iIndx , int jIndx , int width , int height , ISLAND** islandsMatr){
-		for(int i = iIndx + 1 ; i < width ; ++i){
-			if(islandsMatr[i][jIndx].isIsland){
-				neighborsPtrs.push_back( &(islandsMatr[i][jIndx]) ); break;
-			}
-		}
-		for(int i = iIndx - 1 ; i >= 0 ; --i){
-			if(islandsMatr[i][jIndx].isIsland){
-				neighborsPtrs.push_back( &(islandsMatr[i][jIndx]) ); break;
-			}
-		}
-		for(int i = jIndx + 1 ; i < height ; ++i){
-			if(islandsMatr[iIndx][i].isIsland){
-				neighborsPtrs.push_back( &(islandsMatr[iIndx][i]) ); break;
-			}
-		}
-		for(int i = jIndx - 1 ; i >= 0 ; --i){
-			if(islandsMatr[iIndx][i].isIsland){
-				neighborsPtrs.push_back( &(islandsMatr[iIndx][i]) ); break;
-			}
-		}
-	}
+public:
+	vector<pair<ISLAND*, unsigned int> > neighbours; // ptr to neighbour and count of bridges to this neighbour
+    unsigned int x;
+    unsigned int y;
+	unsigned int capacity;
+	bool shown;
+	unsigned int getMaxBridges() const;
+	ISLAND():shown(false){};
+	void addBridges(unsigned int bridges);
 };
-int main()
-{
-    int width; // the number of cells on the X axis
+
+unsigned int ISLAND::getMaxBridges() const{
+    unsigned int maxBridges = 0;
+    for(const auto& neighbour : neighbours){
+        //cerr << neighbour.first->capacity << neighbour.first->x << neighbour.first->y << endl;
+        maxBridges += min(neighbour.first->capacity, 2 - neighbour.second);
+    }
+        
+    return maxBridges;
+}
+
+void ISLAND::addBridges(unsigned int bridges){
+    for(auto& neighbour : neighbours){
+        bridges = min(min(2 - neighbour.second, bridges), neighbour.first->capacity);
+        if(bridges == 0){
+            continue;
+        }
+        neighbour.first->capacity -= bridges;
+        neighbour.second += bridges;
+        this->capacity -= bridges;
+        
+        for(auto& neighbourInNeighbours : neighbour.first->neighbours){
+            if(neighbourInNeighbours.first == this){
+                neighbourInNeighbours.second += bridges;
+                break;
+            }
+        }
+    }
+}
+
+class ISLANDS_MATR{
+public:
+    unsigned int width;
+    unsigned int height;
+    vector<vector<ISLAND> > islandsMatr;
+    deque<ISLAND*> islandsQueue;
+    ISLANDS_MATR();
+    void easySolver();
+    void printBridges();
+};
+
+ISLANDS_MATR::ISLANDS_MATR(){
+    
+    // the number of cells on the X axis
     cin >> width; cin.ignore();
-    int height; // the number of cells on the Y axis
+    // the number of cells on the Y axis
     cin >> height; cin.ignore();
-	
-	ISLAND** islandsMatr = new ISLAND*[height];
-		for(int i = 0 ; i < height ; ++i)
-			islandsMatr[i] = new ISLAND[width];
+    
+    // init islands matrix
+    
+	for(int i = 0 ; i < height ; ++i)
+		islandsMatr.push_back(move(vector<ISLAND>(width)));
 		
-    for (int i = 0; i < height; i++) {
+	//	islandsMatr initialization with capacity
+	
+    for (int i = 0; i < height; ++i) {
         string line; // width characters, each either a number or a '.'
         getline(cin, line);
 		for(int j = 0 ; j < width ; ++j){
-			if(line[j] != '.'){
-				islandsMatr[i][j].isIsland = true;
-				islandsMatr[i][j].freeBridges = (int)(line[j]) - 48;
+			if(line[j] == '.'){
+			    islandsMatr[i][j].capacity = 0;
+			}else{
+				islandsMatr[i][j].capacity = (int)(line[j]) - 48;
+    			islandsMatr[i][j].x = j;
+    			islandsMatr[i][j].y = i;
 			}
 		}
     }
+    
+    // adding neighbors to every island
 	
-	for (int i = 0; i < height; i++) {
-		for(int j = 0 ; j < width ; ++j){
-			if(islandsMatr[i][j].isIsland){
-				islandsMatr[i][j].addNeighbors(i , j , width , height , islandsMatr);
+	for (int y = 0; y < height; y++) {
+		for(int x = 0 ; x < width ; ++x){
+			auto& island = islandsMatr[y][x];
+			if(island.capacity){
+                for(int i = y + 1 ; i < width ; ++i){
+            		if(islandsMatr[i][x].capacity){
+            		    island.neighbours.push_back( make_pair<ISLAND*, unsigned int>(&(islandsMatr[i][x]), 0) ); 
+            		    break;
+            		}
+            	}
+            	for(int i = y - 1 ; i >= 0 ; --i){ 
+            		if(islandsMatr[i][x].capacity){
+            			island.neighbours.push_back( make_pair<ISLAND*, unsigned int>(&(islandsMatr[i][x]), 0) ); 
+            			break;
+            		}
+            	}
+            	for(int i = x + 1 ; i < height ; ++i){
+            		if(islandsMatr[y][i].capacity){
+            			island.neighbours.push_back( make_pair<ISLAND*, unsigned int>(&(islandsMatr[y][i]), 0) ); 
+            			break;
+            		}
+            	}
+            	for(int i = x - 1 ; i >= 0 ; --i){
+            		if(islandsMatr[y][i].capacity){
+            			island.neighbours.push_back( make_pair<ISLAND*, unsigned int>(&(islandsMatr[y][i]), 0) ); 
+            			break;
+            		}
+            	}
 			}
 		}
     }
-    cout << "0 0 2 0 1" << endl;
+    
+    // init priority queue of islands
+    
+    for (int y = 0; y < height; y++) {
+		for(int x = 0 ; x < width ; ++x){
+			auto island = &islandsMatr[y][x];
+			if(island->capacity){
+			    auto currentMaxBridges = island->getMaxBridges();
+			    if(currentMaxBridges == island->capacity || 
+			    ((currentMaxBridges - 1 == island->capacity) && (currentMaxBridges < island->neighbours.size()))){
+			        islandsQueue.push_front(island);
+			    }else{
+			        islandsQueue.push_back(island);
+			    }
+			}
+		}
+    }
+}
+
+void ISLANDS_MATR::easySolver(){
+    bool continueLoop = false;
+    do{
+        continueLoop = false;
+        for(auto& island : islandsQueue){
+            auto currentMaxBridges = island->getMaxBridges();
+            if(island->capacity != 0){
+                //cerr << currentMaxBridges << ' ' << island->capacity << endl;
+                if(currentMaxBridges == island->capacity){
+    		        island->addBridges(2);
+    		        continueLoop = true;
+    		        continue;
+                }
+    		    if((currentMaxBridges - 1 == island->capacity) && (currentMaxBridges < island->neighbours.size())){
+    		        island->addBridges(1);
+    		        continueLoop = true;
+    		    }
+            }
+        }
+    } while(continueLoop);
+}
+
+void ISLANDS_MATR::printBridges(){
+    for(auto& island : islandsQueue){
+        if(!island->shown){
+            island->shown = true;
+            for(auto& neighbour : island->neighbours){
+                if(!neighbour.first->shown){
+                    neighbour.first->shown = true;
+                    cout << island->x << ' ' << island->y << ' ' << neighbour.first->x << ' ' << neighbour.first->y << ' ' << neighbour.second << endl;
+                }
+            }
+        }
+    }
+    for(auto& island : islandsQueue){
+        island->shown = false;
+    }
+}
+int main()
+{
+	ISLANDS_MATR islands;
+	islands.easySolver();
+	islands.printBridges();
+    //cout << "0 0 2 0 1" << endl;
 }
