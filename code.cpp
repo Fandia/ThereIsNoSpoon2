@@ -28,9 +28,13 @@ unsigned int ISLAND::getMaxBridges() const{
     return maxBridges;
 }
 
-void ISLAND::addBridges(unsigned int bridges){
+void ISLAND::addBridges(unsigned int bridgesCount){
     for(auto& neighbour : neighbours){
-        bridges = min(min(2 - neighbour.second, bridges), neighbour.first->capacity);
+        unsigned int bridges = min(min(2 - neighbour.second, bridgesCount), neighbour.first->capacity);
+        cerr << "src: " << this->x << this->y << '('<<this->capacity<<')' \
+        << " dst: " << neighbour.first->x << neighbour.first->y << '('<<neighbour.first->capacity<<')' \
+        << " bridges: " << bridges << endl;
+        
         if(bridges == 0){
             continue;
         }
@@ -92,7 +96,7 @@ ISLANDS_MATR::ISLANDS_MATR(){
 		for(int x = 0 ; x < width ; ++x){
 			auto& island = islandsMatr[y][x];
 			if(island.capacity){
-                for(int i = y + 1 ; i < width ; ++i){
+                for(int i = y + 1 ; i < height ; ++i){
             		if(islandsMatr[i][x].capacity){
             		    island.neighbours.push_back( make_pair<ISLAND*, unsigned int>(&(islandsMatr[i][x]), 0) ); 
             		    break;
@@ -104,7 +108,7 @@ ISLANDS_MATR::ISLANDS_MATR(){
             			break;
             		}
             	}
-            	for(int i = x + 1 ; i < height ; ++i){
+            	for(int i = x + 1 ; i < width ; ++i){
             		if(islandsMatr[y][i].capacity){
             			island.neighbours.push_back( make_pair<ISLAND*, unsigned int>(&(islandsMatr[y][i]), 0) ); 
             			break;
@@ -119,7 +123,6 @@ ISLANDS_MATR::ISLANDS_MATR(){
 			}
 		}
     }
-    
     // init priority queue of islands
     
     for (int y = 0; y < height; y++) {
@@ -147,11 +150,13 @@ void ISLANDS_MATR::easySolver(){
             if(island->capacity != 0){
                 //cerr << currentMaxBridges << ' ' << island->capacity << endl;
                 if(currentMaxBridges == island->capacity){
+                    //cerr << "full; capacity: " << island->capacity << ' ' << island->x << island->y << endl;
     		        island->addBridges(2);
     		        continueLoop = true;
     		        continue;
                 }
     		    if((currentMaxBridges - 1 == island->capacity) && (currentMaxBridges < island->neighbours.size())){
+                    //cerr << "one " << island->x << island->y << endl;
     		        island->addBridges(1);
     		        continueLoop = true;
     		    }
@@ -162,11 +167,13 @@ void ISLANDS_MATR::easySolver(){
 
 void ISLANDS_MATR::printBridges(){
     for(auto& island : islandsQueue){
+        //cerr << island->x << island->y << ' ' << island->shown << endl;
         if(!island->shown){
             island->shown = true;
             for(auto& neighbour : island->neighbours){
-                if(!neighbour.first->shown){
-                    neighbour.first->shown = true;
+                cerr << island->x << island->y << ' ' << island->shown << endl;
+                if(!neighbour.first->shown && neighbour.second != 0){
+                    //neighbour.first->shown = true;
                     cout << island->x << ' ' << island->y << ' ' << neighbour.first->x << ' ' << neighbour.first->y << ' ' << neighbour.second << endl;
                 }
             }
