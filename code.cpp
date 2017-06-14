@@ -12,27 +12,47 @@ public:
     unsigned int x;
     unsigned int y;
 	unsigned int capacity;
-	bool shown;
-	unsigned int getMaxBridges() const;
-	ISLAND():shown(false){};
+	
+	inline unsigned int getMaxBridges() const{
+        unsigned int maxBridges = 0;
+        for(const auto& neighbour : neighbours)
+            maxBridges += min(neighbour.first->capacity, 2 - neighbour.second);
+        
+        return maxBridges;
+	};
+	
+	inline unsigned int getNeighboursCount() const{
+        unsigned int neighboursCount = 0;
+        for(const auto& neighbour : neighbours)
+            if(neighbour.first->capacity)
+                neighboursCount++;
+                
+        return neighboursCount;
+	};
+	void addSubBridgeTo(const unsigned int& neighbourIdx, const int& increment);
 	void addBridges(unsigned int bridges);
 };
 
-unsigned int ISLAND::getMaxBridges() const{
-    unsigned int maxBridges = 0;
-    for(const auto& neighbour : neighbours){
-        //cerr << neighbour.first->capacity << neighbour.first->x << neighbour.first->y << endl;
-        maxBridges += min(neighbour.first->capacity, 2 - neighbour.second);
+// To add bridge - increment = 1, to delete - increment = -1
+void ISLAND::addSubBridgeTo(const unsigned int& neighbourIdx, const int& increment){
+    auto neighbour = neighbours.at(neighbourIdx);
+    capacity -= increment;
+    neighbour.first->capacity -= increment;
+    neighbour.second += increment;
+    
+    for(auto& neighbourInNeighbours : neighbour.first->neighbours){
+        if(neighbourInNeighbours.first == this){
+            neighbourInNeighbours.second += increment;
+            break;
+        }
     }
-        
-    return maxBridges;
 }
 
 void ISLAND::addBridges(unsigned int bridgesCount){
     for(auto& neighbour : neighbours){
         unsigned int bridges = min(min(2 - neighbour.second, bridgesCount), neighbour.first->capacity);
-        cerr << "src: " << this->x << this->y << '('<<this->capacity<<')' \
-        << " dst: " << neighbour.first->x << neighbour.first->y << '('<<neighbour.first->capacity<<')' \
+        //cerr << "src: " << this->x << this->y << '('<<this->capacity<<')' \
+        //<< " dst: " << neighbour.first->x << neighbour.first->y << '('<<neighbour.first->capacity<<')' \
         << " bridges: " << bridges << endl;
         
         if(bridges == 0){
@@ -51,14 +71,36 @@ void ISLAND::addBridges(unsigned int bridgesCount){
     }
 }
 
+class ISLANDS_POOL{
+    vector<pair<ISLAND*, ISLAND*> > pool;
+public:
+    inline void addSrcDst(ISLAND* srcIsland, ISLAND* dstIsland){
+        pool.push_back(pair<ISLAND*, ISLAND*>(srcIsland, dstIsland));
+    };
+    inline bool checkUsing(const ISLAND* srcIsland, const ISLAND* dstIsland) const{
+        for(auto& bridge : pool){
+            if((bridge.first == srcIsland && bridge.second == dstIsland) ||
+            (bridge.first == dstIsland && bridge.second == srcIsland))
+                return 1;
+        }
+        return 0;
+    };
+    inline void clear(){
+        pool.clear();
+    };
+};
+
 class ISLANDS_MATR{
+    vector<vector<ISLAND> > islandsMatr;
+    deque<ISLAND*> islandsQueue;
+    deque<ISLAND*> nonZeroCapacity;
 public:
     unsigned int width;
     unsigned int height;
-    vector<vector<ISLAND> > islandsMatr;
-    deque<ISLAND*> islandsQueue;
     ISLANDS_MATR();
     void easySolver();
+    int checkEasySolver();
+    int betterSolver();
     void printBridges();
 };
 
@@ -131,7 +173,7 @@ ISLANDS_MATR::ISLANDS_MATR(){
 			if(island->capacity){
 			    auto currentMaxBridges = island->getMaxBridges();
 			    if(currentMaxBridges == island->capacity || 
-			    ((currentMaxBridges - 1 == island->capacity) && (currentMaxBridges < island->neighbours.size()))){
+			    ((currentMaxBridges - 1 == island->capacity) && (island->capacity < island->getNeighboursCount()))){
 			        islandsQueue.push_front(island);
 			    }else{
 			        islandsQueue.push_back(island);
@@ -148,15 +190,18 @@ void ISLANDS_MATR::easySolver(){
         for(auto& island : islandsQueue){
             auto currentMaxBridges = island->getMaxBridges();
             if(island->capacity != 0){
-                //cerr << currentMaxBridges << ' ' << island->capacity << endl;
                 if(currentMaxBridges == island->capacity){
                     //cerr << "full; capacity: " << island->capacity << ' ' << island->x << island->y << endl;
     		        island->addBridges(2);
     		        continueLoop = true;
-    		        continue;
                 }
-    		    if((currentMaxBridges - 1 == island->capacity) && (currentMaxBridges < island->neighbours.size())){
-                    //cerr << "one " << island->x << island->y << endl;
+    		    else if((currentMaxBridges - 1 == island->capacity) && (island->capacity < island->getNeighboursCount())){
+                    //cerr << "one; capacity: " << island->capacity << ' ' << island->x << island->y << endl;
+    		        island->addBridges(1);
+    		        continueLoop = true;
+    		    }
+    		    else if(island->capacity == 1 &&  island->getNeighboursCount() == 1){
+                    //cerr << "one; capacity: " << island->capacity << ' ' << island->x << island->y << endl;
     		        island->addBridges(1);
     		        continueLoop = true;
     		    }
@@ -165,28 +210,98 @@ void ISLANDS_MATR::easySolver(){
     } while(continueLoop);
 }
 
-void ISLANDS_MATR::printBridges(){
+int ISLANDS_MATR::checkEasySolver(){
+    for(auto& island : nonZeroCapacity){
+        if(island->capacity != 0)
+            return 1;
+    }
+    return 0;
+}
+
+int ISLANDS_MATR::betterSolver(){
+    // try to solve pazzle by easySolver
+    easySolver();
     for(auto& island : islandsQueue){
-        //cerr << island->x << island->y << ' ' << island->shown << endl;
-        if(!island->shown){
-            island->shown = true;
+        if(island->capacity != 0)
+            nonZeroCapacity.push_back(island);
+    }
+    
+    // check if easySolver solved pazzle
+    if(checkEasySolver() == 0)
+        return 0;
+    
+    // try to add one bridge    
+    ISLANDS_POOL islandsPool;
+    int test = 0;
+    for(auto& island : nonZeroCapacity){
+        unsigned int neighbourIdx = 0;
+        for(auto& neighbour : island->neighbours){
+            if(neighbour.second < 2 && neighbour.first->capacity && 
+            !islandsPool.checkUsing(island, neighbour.first)){
+                cerr << island->x << island->y << ' ' << neighbour.first->x << neighbour.first->y << ' ' << 1 << endl;
+                islandsPool.addSrcDst(island, neighbour.first);
+                auto tempMatr = islandsMatr;
+                island->addSubBridgeTo(neighbourIdx, 1);
+                easySolver();
+                if(checkEasySolver()){
+                    //island->addSubBridgeTo(neighbourIdx, -1);
+                    //test++;
+                    //if(test == 20)
+                        //return 0;
+                    islandsMatr = tempMatr;
+                    continue;
+                }
+                return 0;
+            }
+            neighbourIdx++;
+        }
+    }
+    // try to add two bridges
+    islandsPool.clear();
+    for(auto& island : nonZeroCapacity){
+        unsigned int neighbourIdx = 0;
+        for(auto& neighbour : island->neighbours){
+            if(neighbour.second == 0 && neighbour.first->capacity >= 2 && 
+            !islandsPool.checkUsing(island, neighbour.first)){
+                cerr << island->x << island->y << ' ' << neighbour.first->x << neighbour.first->y << ' ' << 2 << endl;
+                islandsPool.addSrcDst(island, neighbour.first);
+                auto tempMatr = islandsMatr;
+                island->addSubBridgeTo(neighbourIdx, 2);
+                easySolver();
+                if(checkEasySolver()){
+                    //island->addSubBridgeTo(neighbourIdx, -1);
+                    //test++;
+                    //if(test == 20)
+                        //return 0;
+                    islandsMatr = tempMatr;
+                    continue;
+                }
+                return 0;
+            }
+            neighbourIdx++;
+        }
+    }
+    return 1;
+}
+
+void ISLANDS_MATR::printBridges(){
+    ISLANDS_POOL islandsPool;
+    for(auto& island : islandsQueue){
             for(auto& neighbour : island->neighbours){
-                cerr << island->x << island->y << ' ' << island->shown << endl;
-                if(!neighbour.first->shown && neighbour.second != 0){
-                    //neighbour.first->shown = true;
+                //cerr << island->x << ' ' << island->y << ' ' << neighbour.first->x << ' ' << neighbour.first->y << ' ' << neighbour.second << endl;
+                if(!islandsPool.checkUsing(island, neighbour.first) && neighbour.second != 0){
+                    islandsPool.addSrcDst(island, neighbour.first);
                     cout << island->x << ' ' << island->y << ' ' << neighbour.first->x << ' ' << neighbour.first->y << ' ' << neighbour.second << endl;
                 }
             }
-        }
-    }
-    for(auto& island : islandsQueue){
-        island->shown = false;
     }
 }
 int main()
 {
 	ISLANDS_MATR islands;
-	islands.easySolver();
+	if(islands.betterSolver()){
+	    cout << "Can't solve pazzle" << endl;
+	    return 0;
+	}
 	islands.printBridges();
-    //cout << "0 0 2 0 1" << endl;
 }
