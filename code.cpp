@@ -170,7 +170,7 @@ ISLANDS_MATR::ISLANDS_MATR(){
 					islandsQueue.push_back(island);
 				}
 			}else{
-			    bridgesQueue.push_back(island);
+				bridgesQueue.push_back(island);
 			}
 		}
 	}
@@ -178,22 +178,22 @@ ISLANDS_MATR::ISLANDS_MATR(){
 
 // Add obstacles in islands matrix to avoid cross between bridges. increment = 1 - add, -1 - sub
 void ISLANDS_MATR::addSubObstacles(const ISLAND* src, const ISLAND* dst, const int& increment){
-    if(src->x == dst->x){
-	    if(src->y < dst->y)
-	        for(unsigned int i = src->y + 1; i < dst->y; i++)
-	            (islandsMatr.at(i)).at(src->x).capacity += increment;
-        else
-            for(unsigned int i = src->y - 1; i > dst->y; i--)
-	            (islandsMatr.at(i)).at(src->x).capacity += increment;
+	if(src->x == dst->x){
+		if(src->y < dst->y)
+			for(unsigned int i = src->y + 1; i < dst->y; i++)
+				(islandsMatr.at(i)).at(src->x).capacity += increment;
+		else
+			for(unsigned int i = src->y - 1; i > dst->y; i--)
+				(islandsMatr.at(i)).at(src->x).capacity += increment;
 	}else if(src->y == dst->y){
-	    if(src->x < dst->x)
-	        for(unsigned int i = src->x + 1; i < dst->x; i++)
-	            (islandsMatr.at(src->y)).at(i).capacity += increment * 2;
-        else
-            for(unsigned int i = src->x - 1; i > dst->x; i--)
-	            (islandsMatr.at(src->y)).at(i).capacity += increment * 2;
+		if(src->x < dst->x)
+			for(unsigned int i = src->x + 1; i < dst->x; i++)
+				(islandsMatr.at(src->y)).at(i).capacity += increment * 2;
+		else
+			for(unsigned int i = src->x - 1; i > dst->x; i--)
+				(islandsMatr.at(src->y)).at(i).capacity += increment * 2;
 	}else{
-	    throw logic_error("Can't add obstacles");
+		throw logic_error("Can't add obstacles");
 	}
 }
 
@@ -240,33 +240,33 @@ void ISLANDS_MATR::easySolver(){
 
 // Check by BFS single group of islands
 bool ISLANDS_MATR::checkSingleGroup(){
-    queue<ISLAND*> bfsQueue;
-    bfsQueue.push(islandsQueue.front());
-    unsigned int groupSize = 0;
-    do{
-        auto island = bfsQueue.front();
-        bfsQueue.pop();
-        if(island->usedFlag)
-            continue;
-        island->usedFlag = true;
-        
-        for(auto& neighbour : island->neighbours)
-            if(!neighbour.first->usedFlag && neighbour.second > 0)
-                bfsQueue.push(neighbour.first);
-        
-        groupSize++;
-    } while(bfsQueue.size() > 0);
-    
-    for(auto& island : islandsQueue)
-        island->usedFlag = false;
-    if(groupSize == islandsQueue.size())
-        return true;
-    else
-        return false;
+	queue<ISLAND*> bfsQueue;
+	bfsQueue.push(islandsQueue.front());
+	unsigned int groupSize = 0;
+	do{
+		auto island = bfsQueue.front();
+		bfsQueue.pop();
+		if(island->usedFlag)
+			continue;
+		island->usedFlag = true;
+		
+		for(auto& neighbour : island->neighbours)
+			if(!neighbour.first->usedFlag && neighbour.second > 0)
+				bfsQueue.push(neighbour.first);
+		
+		groupSize++;
+	} while(bfsQueue.size() > 0);
+	
+	for(auto& island : islandsQueue)
+		island->usedFlag = false;
+	if(groupSize == islandsQueue.size())
+		return true;
+	else
+		return false;
 }
 
 bool ISLANDS_MATR::checkSolver(){
-    // Check to route all bridges
+	// Check to route all bridges
 	for(const auto& island : nonZeroCapacity){
 		if(island->capacity != 0)
 			return false;
@@ -275,33 +275,33 @@ bool ISLANDS_MATR::checkSolver(){
 	for(const auto& bridge : bridgesQueue){
 		if(bridge->capacity > 1)
 			if(bridge->capacity % 2 != 0)
-			    return false;
+				return false;
 	}
 	// Check to single group
 	if(checkSingleGroup())
-	    return true;
-	    
+		return true;
+		
 	return false;
 }
 
 bool ISLANDS_MATR::backtracking(){
 	for(auto& island : nonZeroCapacity){
 		if(island->capacity != 0){
-	        unsigned int neighbourIdx = 0;
+			unsigned int neighbourIdx = 0;
 			for(auto& neighbour : island->neighbours){
-        		if(neighbour.second < 2 && neighbour.first->capacity){
-        			island->addSubBridgeTo(neighbourIdx, 1, this);
-                	if(checkSolver())
-                		return true;
-        			if(backtracking())
-        			    return true;
-        			island->addSubBridgeTo(neighbourIdx, -1, this);
-        		}
-    		    neighbourIdx++;
-    	    }
+				if(neighbour.second < 2 && neighbour.first->capacity){
+					island->addSubBridgeTo(neighbourIdx, 1, this);
+					if(checkSolver())
+						return true;
+					if(backtracking())
+						return true;
+					island->addSubBridgeTo(neighbourIdx, -1, this);
+				}
+				neighbourIdx++;
+			}
 		}
 	}
-    
+	
 	return false;
 }
 
@@ -318,9 +318,9 @@ bool ISLANDS_MATR::betterSolver(){
 		return false;
 	// backtracking enter point
 	if(!backtracking())
-	    return true;
-	    
-    return false;
+		return true;
+		
+	return false;
 }
 
 void ISLANDS_MATR::printBridges() const{
