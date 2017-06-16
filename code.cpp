@@ -1,7 +1,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <deque>
+#include <queue>
+#include <algorithm>
 #include <stdexcept>
 
 using namespace std;
@@ -79,15 +80,15 @@ public:
 class ISLANDS_MATR{
 	vector<vector<ISLAND> > islandsMatr;
 	deque<ISLAND*> islandsQueue;
-	deque<ISLAND*> bridgesQueue;
-	deque<ISLAND*> nonZeroCapacity;
-public:
+	vector<ISLAND*> bridgesQueue;
+	vector<ISLAND*> nonZeroCapacity;
 	unsigned int width;
 	unsigned int height;
+public:
 	ISLANDS_MATR();
 	void addSubObstacles(const ISLAND* src, const ISLAND* dst, const int& increment);
 	void easySolver();
-	bool checkEasySolver();
+	bool checkSolver();
 	bool checkSingleGroup();
 	bool backtracking();
 	bool betterSolver();
@@ -98,19 +99,20 @@ ISLANDS_MATR::ISLANDS_MATR(){
 	
 	// the number of cells on the X axis
 	cin >> width; cin.ignore();
+	cerr << width << endl;
 	// the number of cells on the Y axis
 	cin >> height; cin.ignore();
+	cerr << height << endl;
 	
 	// init islands matrix
-	
 	for(int i = 0 ; i < height ; ++i)
 		islandsMatr.push_back(move(vector<ISLAND>(width)));
 		
-	//	islandsMatr initialization with capacity
-	
+	// islandsMatr initialization with capacity
 	for (int i = 0; i < height; ++i) {
 		string line; // width characters, each either a number or a '.'
 		getline(cin, line);
+		cerr << line << endl;
 		for(int j = 0 ; j < width ; ++j){
 			if(line[j] == '.'){
 				islandsMatr[i][j].capacity = 0;
@@ -123,7 +125,6 @@ ISLANDS_MATR::ISLANDS_MATR(){
 	}
 	
 	// adding neighbors to every island
-	
 	for (int y = 0; y < height; y++) {
 		for(int x = 0 ; x < width ; ++x){
 			auto& island = islandsMatr[y][x];
@@ -155,8 +156,8 @@ ISLANDS_MATR::ISLANDS_MATR(){
 			}
 		}
 	}
-	// init priority queue of islands
 	
+	// init priority queue of islands
 	for (int y = 0; y < height; y++) {
 		for(int x = 0 ; x < width ; ++x){
 			const auto island = &islandsMatr[y][x];
@@ -239,34 +240,32 @@ void ISLANDS_MATR::easySolver(){
 
 // Check by BFS single group of islands
 bool ISLANDS_MATR::checkSingleGroup(){
-    deque<ISLAND*> bfsQueue;
-    bfsQueue.push_back(islandsQueue.front());
+    queue<ISLAND*> bfsQueue;
+    bfsQueue.push(islandsQueue.front());
     unsigned int groupSize = 0;
     do{
         auto island = bfsQueue.front();
-        bfsQueue.pop_front();
+        bfsQueue.pop();
         if(island->usedFlag)
             continue;
         island->usedFlag = true;
         
         for(auto& neighbour : island->neighbours)
             if(!neighbour.first->usedFlag && neighbour.second > 0)
-                bfsQueue.push_back(neighbour.first);
+                bfsQueue.push(neighbour.first);
         
-        //cerr << island->x << island->y << endl;
         groupSize++;
     } while(bfsQueue.size() > 0);
     
     for(auto& island : islandsQueue)
         island->usedFlag = false;
-    //cerr << groupSize << ' ' << islandsQueue.size();
     if(groupSize == islandsQueue.size())
         return true;
     else
         return false;
 }
 
-bool ISLANDS_MATR::checkEasySolver(){
+bool ISLANDS_MATR::checkSolver(){
     // Check to route all bridges
 	for(const auto& island : nonZeroCapacity){
 		if(island->capacity != 0)
@@ -291,13 +290,11 @@ bool ISLANDS_MATR::backtracking(){
 	        unsigned int neighbourIdx = 0;
 			for(auto& neighbour : island->neighbours){
         		if(neighbour.second < 2 && neighbour.first->capacity){
-                    //cerr << island->x << island->y << '-' << neighbour.first->x <<  neighbour.first->y << endl;
         			island->addSubBridgeTo(neighbourIdx, 1, this);
-                	if(checkEasySolver())
+                	if(checkSolver())
                 		return true;
         			if(backtracking())
         			    return true;
-    			    //cerr << "--------" << endl;
         			island->addSubBridgeTo(neighbourIdx, -1, this);
         		}
     		    neighbourIdx++;
@@ -317,9 +314,9 @@ bool ISLANDS_MATR::betterSolver(){
 	}
 	
 	// check if easySolver solved pazzle
-	if(checkEasySolver())
+	if(checkSolver())
 		return false;
-	
+	// backtracking enter point
 	if(!backtracking())
 	    return true;
 	    
